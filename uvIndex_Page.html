@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.14/vue.js"></script>
+<style>
+    #uvIndex{
+        left: 0;
+        right: 0;
+        top: 0;
+        margin: auto;
+        width: fit-content;
+        padding: 15px;
+        background-color: bisque;
+        border: 2px solid black;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+    }
+    .iconBox{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+    }
+    img{
+        margin-right: 5px;
+        display: block;
+        width: 30px;
+        height: 30px;
+    }
+</style>
+
+
+<body>
+
+    <div id="uvIndex">
+        <div class="iconBox">
+            <div><img id="uvPic" src="./images/uv_cloud.png" alt="uvIdexPic"></div>
+            <p>紫外線指數: {{uvLevel}}</p>
+        </div>
+        <p>{{dataTime}}</p>
+    </div>
+
+    <script>
+        let uvIndexVue = new Vue({
+        el: '#uvIndex',
+        data: {
+            dataTime : "",
+            uvLevel:"(暫無資料)",
+            vueData:{},
+        },
+        methods: {
+            uvIndexAPI(){
+                let xhr = new XMLHttpRequest();
+                xhr.onload = function(){ 
+                uvIndexVue.vueData = JSON.parse(xhr.responseText);
+                // receive uv records data that pre-substract in php
+                let arr = [];
+                for(let i=0;i<uvIndexVue.vueData.length; i++){
+                    Object.keys(uvIndexVue.vueData[i]).forEach(key => {
+                    if(uvIndexVue.vueData[i].sitename == '桃園' ){
+                        arr.push(uvIndexVue.vueData[i]);
+                    }
+                    });
+                }
+
+                uvIndexVue.dataTime = arr[0]["publishtime"];
+                uvIndexVue.dataTime += "更新";
+                uvIndexVue.uvLevel = "";
+                uvIndexVue.uvLevel = uvIndexVue.uvIndexContrast(arr[0]["uvi"])["text"];
+
+                document.getElementById("uvPic").src = uvIndexVue.uvIndexContrast(arr[0]["uvi"])["picSrc"];
+
+                }
+                xhr.open("GET", "./uvIdex.php", true);
+                xhr.setRequestHeader("content-type","application/x-www-form-urlencoded");
+                xhr.send(null);
+            },
+            uvIndexContrast(uvi){
+            let uviData = parseFloat(uvi);
+            let uvToIcon = {};
+            if ( 0 <= uviData && uviData <= 2){
+                uvToIcon.text = "低量";
+                uvToIcon.picSrc = "./images/uv_low.png";
+                return uvToIcon;
+            }else if( 3 <= uviData && uviData <= 5){
+                uvToIcon.text = "中量";
+                uvToIcon.picSrc = "./images/uv_medium.png";
+                return uvToIcon;
+            }else if( 6 <= uviData && uviData <= 7){
+                uvToIcon.text = "高量";
+                uvToIcon.picSrc = "./images/uv_high.png";
+                return uvToIcon;
+            }else if( 8 <= uviData && uviData <= 10){
+                uvToIcon.text = "過量";
+                uvToIcon.picSrc = "./images/uv_overdose.png";
+                return uvToIcon;
+            }else if( uviData < 11 || uviData >11){
+                uvToIcon.text = "危險";
+                uvToIcon.picSrc = "./images/uv_danger.png";
+                return uvToIcon;
+            }else{
+                uvToIcon.text = "(暫無資料)";
+                uvToIcon.picSrc = "./images/uv_cloud.png";
+                return uvToIcon;
+            }
+            }
+        },
+        created(){
+        this.uvIndexAPI();
+        },
+    });
+    </script>
+</body>
+</html>
